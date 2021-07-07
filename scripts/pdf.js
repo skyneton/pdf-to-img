@@ -2201,7 +2201,7 @@ class PDFPageProxy {
         pageIndex: this._pageIndex,
         intent: renderingIntent,
         renderInteractiveForms: renderInteractiveForms === true,
-        annotationStorage: annotationStorage?.serializable || null
+        annotationStorage: annotationStorage ? annotationStorage.serializable : null
       });
     }
 
