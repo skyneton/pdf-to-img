@@ -9161,7 +9161,7 @@ class WidgetAnnotationElement extends AnnotationElement {
               modifier: this._getKeyModifier(event)
             }
           });
-        });
+        }
       });
     } else {
       element.addEventListener(baseName, event => {
