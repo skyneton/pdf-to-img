@@ -3,43 +3,98 @@ const PDF_READER_MAIN_URL = URL.createObjectURL(new Blob([`(${pdfjsLibWorker.toS
 
 function PDFReader(options, file) {
     "use strict";
-    let WORKER_URL, worker;
-    let numPages = 0;
+    const WORKER = [];
+    let WORKER_URL, numPages = 0;
     const idx = [];
+    let targetWorker = 0;
+    let numImageConverts = 0;
+    let pdfLoadedTime = 0;
+    let targetWorkerUid;
 
-    const throwError = (err, options, id) => {
+    const throwError = (err, options, id, isThrow = true) => {
         if(id != undefined && id != null) delete idx[id];
 
         if(!!options.error) options.error(err);
-        else throw err;
+        else if(isThrow) throw err;
+        else console.error(err.message);
     };
+
+    const randomKey = () => {
+        return `${((1 + Math.random()) * 0x10000 | 0).toString(16)}`
+         + `-${((1 + Math.random()) * 0x10000 | 0).toString(16)}`
+         + `-${((1 + Math.random()) * 0x10000 | 0).toString(16)}`
+         + `-${((1 + Math.random()) * 0x1000000 | 0).toString(16)}`;
+    }
 
     const workerInit = () => {
         if(OffscreenCanvas && Worker && location.protocol.startsWith("http")) {
             WORKER_URL = URL.createObjectURL(new Blob([`(${threadWorker.toString()})()`]));
-            worker = new Worker(WORKER_URL);
-            worker.addEventListener("message", getThreadMessage);
 
-            const id = idx.length;
+            let workerLength = options.numWorkers;
+            if(!workerLength || workerLength <= 0) workerLength = 1;
+
+            const id = randomKey();
             idx[id] = options;
-            worker.postMessage({
-                type: "init",
-                data: file,
-                url: [PDF_READER_MAIN_URL, PDF_WORKER_MAIN_URL],
-                return: id
-            });
+
+            for(let i = 0; i < workerLength; i++) {
+                const tempWorker = new Worker(WORKER_URL);
+                tempWorker.addEventListener("message", getThreadMessage(i));
+
+                tempWorker.postMessage({
+                    type: "init",
+                    data: file,
+                    url: [PDF_READER_MAIN_URL, PDF_WORKER_MAIN_URL],
+                    return: id,
+                });
+
+                WORKER.push({worker: tempWorker});
+            }
+
+            targetWorkerUpdate();
         }else {
             throw new Error("Can't Use");
         }
     };
 
-    
+    const targetWorkerUpdate = () => {
+        if(++targetWorker >= Object.keys(WORKER).length) targetWorker = 0;
+        targetWorkerUid = Object.keys(WORKER)[targetWorker];
+    };
 
-    var getThreadMessage = e => {
+    var getThreadMessage = id => e => {
         const packet = e.data, options = idx[packet.return];
         if(!!options) {
+            if(packet.isPageNum) {
+                if(packet.type == "error") {
+                    console.error(packet.result);
+                    WORKER[id].worker.terminate();
+                    delete WORKER[id];
+                    if(Object.keys(WORKER).length <= 0) {
+                        throwError(new Error(packet.result), options, packet.return, false);
+                        Reader.close();
+                    }
+                    return;
+                }
+                numPages = packet.result;
+                WORKER[id].initalized = true;
+                let isAllInitalized = true;
+
+                for(let i = 0; i < WORKER.length; i++) {
+                    if(!WORKER[i].initalized) {
+                        isAllInitalized = false;
+                        break;
+                    }
+                }
+
+                if(isAllInitalized) {
+                    pdfLoadedTime = Date.now();
+                    if(!!options.success) options.success(packet.result);
+                    delete idx[packet.return];
+                }
+                return;
+            }
+            numImageConverts++;
             if(packet.type == "error") throwError(new Error(packet.result), options, packet.return);
-            if(packet.isPageNum) numPages = packet.result;
             if(!!options.success) options.success(packet.result);
             delete idx[packet.return];
         }
@@ -48,7 +103,7 @@ function PDFReader(options, file) {
 
     var threadWorker = () => {
         const fileReaderAsync = file => {
-            return new Promise((resolve, reject) => {
+            return new Promise(resolve => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     resolve(new Uint8Array(reader.result));
@@ -92,29 +147,38 @@ function PDFReader(options, file) {
                     "type": "success",
                     "isPageNum": true,
                     "result": self.doc.numPages,
-                    "return": packet.return
+                    "return": packet.return,
                 });
             }catch(e) {
                 self.postMessage({
                     "type": "error",
+                    "isPageNum": true,
                     "result": e.message,
-                    "return": packet.return
+                    "return": packet.return,
                 });
             }
         };
 
         const getPageImage = async packet => {
-            const page = await self.doc.getPage(packet.data);
-            const viewport = page.getViewport({scale: 1});
-            const canvas = new OffscreenCanvas(viewport.width, viewport.height);
+            try {
+                const page = await self.doc.getPage(packet.data);
+                const viewport = page.getViewport({scale: 1});
+                const canvas = new OffscreenCanvas(viewport.width, viewport.height);
 
-            await page.render({canvasContext: canvas.getContext("2d"), viewport: viewport}).promise;
+                await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
 
-            self.postMessage({
-                "type": "success",
-                "result": URL.createObjectURL(await canvas.convertToBlob({ type: "image/jpeg" })),
-                "return": packet.return
-            });
+                self.postMessage({
+                    "type": "success",
+                    "result": URL.createObjectURL(await canvas.convertToBlob({ type: "image/jpeg" })),
+                    "return": packet.return,
+                });
+            }catch(e) {
+                self.postMessage({
+                    "type": "error",
+                    "result": e.message,
+                    "return": packet.return,
+                });
+            }
         };
 
         self.addEventListener("message", e => {
@@ -128,7 +192,7 @@ function PDFReader(options, file) {
                     if(!self.doc) self.postMessage({
                         "type": "error",
                         "result": "PDF Document can't load",
-                        "return": packet.return
+                        "return": packet.return,
                     });
                     else getPageImage(packet);
                 }
@@ -137,7 +201,7 @@ function PDFReader(options, file) {
     };
 
 
-    return new class {
+    var Reader =  new class {
         constructor() {
             if(!(file instanceof File || file instanceof Blob || file instanceof Uint8Array || typeof file === "string")) {
                 throw new Error("file type must File or Blob or Uint8Array or string");
@@ -151,32 +215,48 @@ function PDFReader(options, file) {
         }
 
         getPageImage(options, page) {
-            if(!worker) throw new Error("Can't use");
-            const id = idx.length;
+            if(WORKER.length <= 0) throw new Error("Can't use");
+            const id = randomKey();
             idx[id] = options;
             
             if(typeof options === "undefined") {
                 throw new Error("Please input options data");
             }
 
-            worker.postMessage({
+            WORKER[targetWorkerUid].worker.postMessage({
                 "type": "getPageImage",
                 "data": page,
-                "return": id
+                "return": id,
             });
+
+            targetWorkerUpdate();
         }
 
         get numPages() {
             return numPages;
         }
 
+        get numWorkers() {
+            return WORKER.length;
+        }
+
+        get numImageConverts() {
+            return numImageConverts;
+        }
+
+        get pdfLoadedTime() {
+            return pdfLoadedTime;
+        }
+
         close() {
-            if(!!worker) worker.terminate();
+            for(const key in WORKER) WORKER[key].worker.terminate();
             if(!!WORKER_URL) URL.revokeObjectURL(WORKER_URL);
 
             for(const key in idx) {
-                throwError(new Error("PDFReader closed"), idx[key]);
+                throwError(new Error("PDFReader closed"), idx[key], false);
             }
         };
-    }
+    };
+
+    return Reader;
 }

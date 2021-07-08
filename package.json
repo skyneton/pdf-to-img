@@ -1,0 +1,23 @@
+{
+  "name": "pdf-to-img",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skyneton/pdf-to-img.git"
+  },
+  "author": "skyneton",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/skyneton/pdf-to-img/issues"
+  },
+  "homepage": "https://github.com/skyneton/pdf-to-img#readme",
+  "dependencies": {
+    "node-static": "^0.7.11"
+  }
+}
