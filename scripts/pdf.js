@@ -2201,6 +2201,7 @@ class PDFPageProxy {
         pageIndex: this._pageIndex,
         intent: renderingIntent,
         renderInteractiveForms: renderInteractiveForms === true,
+        //annotationStorage: annotationStorage?.serializable || null
         annotationStorage: annotationStorage ? annotationStorage.serializable : null
       });
     }
@@ -2549,7 +2550,8 @@ class PDFPageProxy {
       }
     }
 
-    intentState.streamReader.cancel(new _util.AbortException(reason?.message));
+    //intentState.streamReader.cancel(new _util.AbortException(reason?.message));
+    intentState.streamReader.cancel(new _util.AbortException(reason ? reason.message : undefined));
     intentState.streamReader = null;
 
     if (this._transport.destroyed) {
