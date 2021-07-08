@@ -20,10 +20,10 @@ function PDFReader(options, file) {
     };
 
     const randomKey = () => {
-        return `${((1 + Math.random()) * 0x10000 | 0).toString(16)}`
-         + `-${((1 + Math.random()) * 0x10000 | 0).toString(16)}`
-         + `-${((1 + Math.random()) * 0x10000 | 0).toString(16)}`
-         + `-${((1 + Math.random()) * 0x1000000 | 0).toString(16)}`;
+        return `${((1 + Math.random()) * 0x10000 | 0).toString(32)}`
+         + `-${((1 + Math.random()) * 0x10000 | 0).toString(32)}`
+         + `-${((1 + Math.random()) * 0x10000 | 0).toString(32)}`
+         + `-${((1 + Math.random()) * 0x1000000 | 0).toString(32)}`;
     }
 
     const workerInit = () => {
