@@ -97,7 +97,7 @@ function PDFReader(options, file) {
             }catch(e) {
                 self.postMessage({
                     "type": "error",
-                    "result": e,
+                    "result": e.message,
                     "return": packet.return
                 });
             }
