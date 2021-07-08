@@ -2596,7 +2596,8 @@ class LoopbackPort {
       let buffer, result;
 
       if ((buffer = value.buffer) && (0, _util.isArrayBuffer)(buffer)) {
-        if (transfers?.includes(buffer)) {
+        //if (transfers?.includes(buffer)) {
+        if (transfers && transfers.includes(buffer)) {
           result = new value.constructor(buffer, value.byteOffset, value.byteLength);
         } else {
           result = new value.constructor(value);
@@ -2644,7 +2645,8 @@ class LoopbackPort {
         }
 
         if (typeof desc.value === "function") {
-          if (value.hasOwnProperty?.(i)) {
+          //if (value.hasOwnProperty?.(i)) {
+          if (value.hasOwnProperty && value.hasOwnProperty.(i)) {
             throw new Error(`LoopbackPort.postMessage - cannot clone: ${value[i]}`);
           }
 
@@ -2698,7 +2700,8 @@ const PDFWorker = function PDFWorkerClosure() {
     isWorkerDisabled = true;
     fallbackWorkerSrc = "./pdf.worker.js";
   } else if (typeof document === "object" && "currentScript" in document) {
-    const pdfjsFilePath = document.currentScript?.src;
+    //const pdfjsFilePath = document.currentScript?.src;
+    const pdfjsFilePath = document.currentScript ? document.currentScript.src : undefined;
 
     if (pdfjsFilePath) {
       fallbackWorkerSrc = pdfjsFilePath.replace(/(\.(?:min\.)?js)(\?.*)?$/i, ".worker$1$2");
@@ -2725,7 +2728,8 @@ const PDFWorker = function PDFWorkerClosure() {
     let mainWorkerMessageHandler;
 
     try {
-      mainWorkerMessageHandler = globalThis.pdfjsWorker?.WorkerMessageHandler;
+      //mainWorkerMessageHandler = globalThis.pdfjsWorker?.WorkerMessageHandler;
+      mainWorkerMessageHandler = globalThis.pdfjsWorker ? globalThis.pdfjsWorker.WorkerMessageHandler : undefined;
     } catch (ex) {}
 
     return mainWorkerMessageHandler || null;
@@ -3279,7 +3283,8 @@ class WorkerTransport {
 
           let fontRegistry = null;
 
-          if (params.pdfBug && globalThis.FontInspector?.enabled) {
+          //if (params.pdfBug && globalThis.FontInspector?.enabled) {
+          if (params.pdfBug && globalThis.FontInspector && globalThis.FontInspector.enabled) {
             fontRegistry = {
               registerFont(font, url) {
                 globalThis.FontInspector.fontAdded(font, url);
@@ -3334,7 +3339,8 @@ class WorkerTransport {
           pageProxy.objs.resolve(id, imageData);
           const MAX_IMAGE_SIZE_TO_STORE = 8000000;
 
-          if (imageData?.data?.length > MAX_IMAGE_SIZE_TO_STORE) {
+          //if (imageData?.data?.length > MAX_IMAGE_SIZE_TO_STORE) {
+          if (imageData && imageData.data && imageData.data.length > MAX_IMAGE_SIZE_TO_STORE) {
             pageProxy.cleanupAfterRender = true;
           }
 
@@ -3443,8 +3449,10 @@ class WorkerTransport {
   saveDocument(annotationStorage) {
     return this.messageHandler.sendWithPromise("SaveDocument", {
       numPages: this._numPages,
-      annotationStorage: annotationStorage?.serializable || null,
-      filename: this._fullReader?.filename ?? null
+      //annotationStorage: annotationStorage?.serializable || null,
+      //filename: this._fullReader?.filename ?? null
+      annotationStorage: annotationStorage ? annotationStorage.serializable : null,
+      filename: this._fullReader ? this._fullReader.filename || null : null
     }).finally(() => {
       if (annotationStorage) {
         annotationStorage.resetModified();
@@ -3541,8 +3549,8 @@ class WorkerTransport {
       return {
         info: results[0],
         metadata: results[1] ? new _metadata.Metadata(results[1]) : null,
-        contentDispositionFilename: this._fullReader?.filename ?? null,
-        contentLength: this._fullReader?.contentLength ?? null
+        contentDispositionFilename: this._fullReader ? this._fullReader.filename || null : null,
+        contentLength: this._fullReader ? this._fullReader.contentLength || null : null
       };
     });
   }
@@ -3630,7 +3638,8 @@ class PDFObjects {
 
   has(objId) {
     const obj = this._objs[objId];
-    return obj?.resolved || false;
+    //return obj?.resolved || false;
+    return obj ? obj.resolved || false : false;
   }
 
   resolve(objId, data) {
@@ -3723,7 +3732,8 @@ const InternalRenderTask = function InternalRenderTaskClosure() {
         canvasInRendering.add(this._canvas);
       }
 
-      if (this._pdfBug && globalThis.StepperManager?.enabled) {
+      //if (this._pdfBug && globalThis.StepperManager?.enabled) {
+      if (this._pdfBug && globalThis.StepperManager && globalThis.StepperManager.enabled) {
         this.stepper = globalThis.StepperManager.create(this._pageIndex);
         this.stepper.init(this.operatorList);
         this.stepper.nextBreakPoint = this.stepper.getNextBreakPoint();
@@ -3956,7 +3966,8 @@ class BaseFontLoader {
   }
 
   get isFontLoadingAPISupported() {
-    return (0, _util.shadow)(this, "isFontLoadingAPISupported", !!this._document?.fonts | !!self.fonts);
+    //return (0, _util.shadow)(this, "isFontLoadingAPISupported", !!this._document?.fonts || !!self.fonts);
+    return (0, _util.shadow)(this, "isFontLoadingAPISupported", this._document && this._document.fonts || !!self.fonts);
   }
 
   get isSyncFontLoadingSupported() {
@@ -3994,7 +4005,8 @@ exports.FontLoader = FontLoader;
       } else {
         const m = /Mozilla\/5.0.*?rv:(\d+).*? Gecko/.exec(navigator.userAgent);
 
-        if (m?.[1] >= 14) {
+        //if (m?.[1] >= 14) {
+        if (m && m.[1] >= 14) {
           supported = true;
         }
       }
@@ -5594,7 +5606,8 @@ const CanvasGraphics = function CanvasGraphicsClosure() {
       ctx.globalAlpha = this.current.strokeAlpha;
 
       if (this.contentVisible) {
-        if (typeof strokeColor === "object" && strokeColor?.getPattern) {
+        //if (typeof strokeColor === "object" && strokeColor?.getPattern) {
+        if (typeof strokeColor === "object" && strokeColor && strokeColor.getPattern) {
           ctx.save();
           const transform = ctx.mozCurrentTransform;
 
@@ -6397,7 +6410,8 @@ const CanvasGraphics = function CanvasGraphicsClosure() {
         }
       }
 
-      if (glyph?.compiled) {
+      //if (glyph?.compiled) {
+      if (glyph && glyph.compiled) {
         glyph.compiled(ctx);
         return;
       }
@@ -7722,7 +7736,8 @@ class Metadata {
   }
 
   get(name) {
-    return this._metadataMap.get(name) ?? null;
+    //return this._metadataMap.get(name) ?? null;
+    return this._metadataMap.get(name) || null;
   }
 
   getAll() {
@@ -7924,7 +7939,8 @@ class PDFDataTransportStream {
     this._contentDispositionFilename = params.contentDispositionFilename || null;
     const initialData = params.initialData;
 
-    if (initialData?.length > 0) {
+    //if (initialData?.length > 0) {
+    if (initialData && initialData.length > 0) {
       const buffer = new Uint8Array(initialData).buffer;
 
       this._queuedChunks.push(buffer);
@@ -7989,14 +8005,16 @@ class PDFDataTransportStream {
   }
 
   get _progressiveDataLength() {
-    return this._fullRequestReader?._loaded ?? 0;
+    //return this._fullRequestReader?._loaded ?? 0;
+    return this._fullRequestReader ? this._fullRequestReader._loaded || 0 : 0;
   }
 
   _onProgress(evt) {
     if (evt.total === undefined) {
       const firstReader = this._rangeReaders[0];
 
-      if (firstReader?.onProgress) {
+      //if (firstReader?.onProgress) {
+      if (firstReader && firstReader.onProgress) {
         firstReader.onProgress({
           loaded: evt.loaded
         });
@@ -8004,7 +8022,8 @@ class PDFDataTransportStream {
     } else {
       const fullReader = this._fullRequestReader;
 
-      if (fullReader?.onProgress) {
+      //if (fullReader?.onProgress) {
+      if (fullReader && fullReader.onProgress) {
         fullReader.onProgress({
           loaded: evt.loaded,
           total: evt.total
@@ -8684,12 +8703,14 @@ const WebGLUtils = function WebGLUtilsClosure() {
     drawFigures,
 
     cleanup() {
-      if (smaskCache?.canvas) {
+      //if (smaskCache?.canvas) {
+      if (smaskCache && smaskCache.canvas) {
         smaskCache.canvas.width = 0;
         smaskCache.canvas.height = 0;
       }
 
-      if (figuresCache?.canvas) {
+      //if (figuresCache?.canvas) {
+      if (figuresCache && figuresCache.canvas) {
         figuresCache.canvas.width = 0;
         figuresCache.canvas.height = 0;
       }
@@ -9048,13 +9069,22 @@ class LinkAnnotationElement extends AnnotationElement {
       }
 
       link[jsName] = () => {
-        this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
-          source: this,
-          detail: {
-            id: data.id,
-            name
-          }
-        });
+       // this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+       //   source: this,
+       //   detail: {
+       //     id: data.id,
+       //     name
+       //   }
+       // });
+        if (this.linkService.eventBus) {
+            this.linkService.eventBus.dispatch("dispatcheventinsandbox", {
+              source: this,
+              detail: {
+                id: data.id,
+                name
+              }
+            });
+	}
         return false;
       };
     }
@@ -9110,34 +9140,57 @@ class WidgetAnnotationElement extends AnnotationElement {
   _setEventListener(element, baseName, eventName, valueGetter) {
     if (baseName.includes("mouse")) {
       element.addEventListener(baseName, event => {
-        this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
-          source: this,
-          detail: {
-            id: this.data.id,
-            name: eventName,
-            value: valueGetter(event),
-            shift: event.shiftKey,
-            modifier: this._getKeyModifier(event)
-          }
+       // this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+       //   source: this,
+       //   detail: {
+       //     id: this.data.id,
+       //     name: eventName,
+       //     value: valueGetter(event),
+       //     shift: event.shiftKey,
+       //     modifier: this._getKeyModifier(event)
+       //   }
+       // });
+        if(this.linkService.eventBus) {
+          this.linkService.eventBus.dispatch("dispatcheventinsandbox", {
+            source: this,
+            detail: {
+              id: this.data.id,
+              name: eventName,
+              value: valueGetter(event),
+              shift: event.shiftKey,
+              modifier: this._getKeyModifier(event)
+            }
+          });
         });
       });
     } else {
       element.addEventListener(baseName, event => {
-        this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
-          source: this,
-          detail: {
-            id: this.data.id,
-            name: eventName,
-            value: event.target.checked
-          }
-        });
+      //  this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+      //    source: this,
+      //    detail: {
+      //      id: this.data.id,
+      //      name: eventName,
+      //      value: event.target.checked
+      //    }
+      //  });
+        if(this.linkService.eventBus) {
+          this.linkService.eventBus.dispatch("dispatcheventinsandbox", {
+            source: this,
+            detail: {
+              id: this.data.id,
+              name: eventName,
+              value: event.target.checked
+            }
+          });
+        }
       });
     }
   }
 
   _setEventListeners(element, names, getter) {
     for (const [baseName, eventName] of names) {
-      if (eventName === "Action" || this.data.actions?.[eventName]) {
+      //if (eventName === "Action" || this.data.actions?.[eventName]) {
+      if (eventName === "Action" || this.data.actions && this.data.actions.[eventName]) {
         this._setEventListener(element, baseName, eventName, getter);
       }
     }
@@ -9320,36 +9373,64 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
           }
 
           elementData.userValue = event.target.value;
-          this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
-            source: this,
-            detail: {
-              id,
-              name: "Keystroke",
-              value: event.target.value,
-              willCommit: true,
-              commitKey,
-              selStart: event.target.selectionStart,
-              selEnd: event.target.selectionEnd
-            }
-          });
-        });
-        const _blurListener = blurListener;
-        blurListener = null;
-        element.addEventListener("blur", event => {
-          if (this._mouseState.isDown) {
-            elementData.userValue = event.target.value;
-            this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+        //  this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+        //    source: this,
+        //    detail: {
+        //      id,
+        //      name: "Keystroke",
+        //      value: event.target.value,
+        //      willCommit: true,
+        //      commitKey,
+        //      selStart: event.target.selectionStart,
+        //      selEnd: event.target.selectionEnd
+        //    }
+        //  });
+          if (this.linkService.eventBus) {
+            this.linkService.eventBus.dispatch("dispatcheventinsandbox", {
               source: this,
               detail: {
                 id,
                 name: "Keystroke",
                 value: event.target.value,
                 willCommit: true,
-                commitKey: 1,
+                commitKey,
                 selStart: event.target.selectionStart,
                 selEnd: event.target.selectionEnd
               }
             });
+          }
+        });
+        const _blurListener = blurListener;
+        blurListener = null;
+        element.addEventListener("blur", event => {
+          if (this._mouseState.isDown) {
+            elementData.userValue = event.target.value;
+         //   this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+         //     source: this,
+         //     detail: {
+         //       id,
+         //       name: "Keystroke",
+         //       value: event.target.value,
+         //       willCommit: true,
+         //       commitKey: 1,
+         //       selStart: event.target.selectionStart,
+         //       selEnd: event.target.selectionEnd
+         //     }
+         //   });
+            if (this.linkService.eventBus) {
+              this.linkService.eventBus.dispatch("dispatcheventinsandbox", {
+                source: this,
+                detail: {
+                  id,
+                  name: "Keystroke",
+                  value: event.target.value,
+                  willCommit: true,
+                  commitKey: 1,
+                  selStart: event.target.selectionStart,
+                  selEnd: event.target.selectionEnd
+                }
+              });
+            }
           }
 
           _blurListener(event);
@@ -9367,7 +9448,8 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
           elementData.beforeInputSelectionRange = [event.target.selectionStart, event.target.selectionEnd];
         });
 
-        if (this.data.actions?.Keystroke) {
+        //if (this.data.actions?.Keystroke) {
+        if (this.data.actions && this.data.actions.Keystroke) {
           element.addEventListener("input", event => {
             let selStart = -1;
             let selEnd = -1;
@@ -9376,18 +9458,32 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
               [selStart, selEnd] = elementData.beforeInputSelectionRange;
             }
 
-            this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
-              source: this,
-              detail: {
-                id,
-                name: "Keystroke",
-                value: elementData.beforeInputValue,
-                change: event.data,
-                willCommit: false,
-                selStart,
-                selEnd
-              }
-            });
+         //   this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+         //     source: this,
+         //     detail: {
+         //       id,
+         //       name: "Keystroke",
+         //       value: elementData.beforeInputValue,
+         //       change: event.data,
+         //       willCommit: false,
+         //       selStart,
+         //       selEnd
+         //     }
+         //   });
+            if (this.linkService.eventBus) {
+              this.linkService.eventBus.dispatch("dispatcheventinsandbox", {
+                source: this,
+                detail: {
+                  id,
+                  name: "Keystroke",
+                  value: elementData.beforeInputValue,
+                  change: event.data,
+                  willCommit: false,
+                  selStart,
+                  selEnd
+                }
+              });
+            }
           });
         }
 
@@ -9838,18 +9934,32 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
         storage.setValue(id, {
           value: exportValue
         });
-        this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
-          source: this,
-          detail: {
-            id,
-            name: "Keystroke",
-            value,
-            changeEx: exportValue,
-            willCommit: true,
-            commitKey: 1,
-            keyDown: false
-          }
-        });
+    //    this.linkService.eventBus?.dispatch("dispatcheventinsandbox", {
+    //      source: this,
+    //      detail: {
+    //        id,
+    //        name: "Keystroke",
+    //        value,
+    //        changeEx: exportValue,
+    //        willCommit: true,
+    //        commitKey: 1,
+    //        keyDown: false
+    //      }
+    //    });
+        if (this.linkService.eventBus) {
+          this.linkService.eventBus.dispatch("dispatcheventinsandbox", {
+            source: this,
+            detail: {
+              id,
+              name: "Keystroke",
+              value,
+              changeEx: exportValue,
+              willCommit: true,
+              commitKey: 1,
+              keyDown: false
+            }
+          });
+        }
       });
 
       this._setEventListeners(selectElement, [["focus", "Focus"], ["blur", "Blur"], ["mousedown", "Mouse Down"], ["mouseenter", "Mouse Enter"], ["mouseleave", "Mouse Exit"], ["mouseup", "Mouse Up"], ["input", "Action"]], event => event.target.checked);
@@ -10394,12 +10504,20 @@ class FileAttachmentAnnotationElement extends AnnotationElement {
     } = this.data.file;
     this.filename = (0, _display_utils.getFilenameFromUrl)(filename);
     this.content = content;
-    this.linkService.eventBus?.dispatch("fileattachmentannotation", {
-      source: this,
-      id: (0, _util.stringToPDFString)(filename),
-      filename,
-      content
-    });
+  //  this.linkService.eventBus?.dispatch("fileattachmentannotation", {
+  //    source: this,
+  //    id: (0, _util.stringToPDFString)(filename),
+  //    filename,
+  //    content
+  //  });
+    if (this.linkService.eventBus) {
+      this.linkService.eventBus?.dispatch("fileattachmentannotation", {
+        source: this,
+        id: (0, _util.stringToPDFString)(filename),
+        filename,
+        content
+      });
+    }
   }
 
   render() {
@@ -10418,7 +10536,8 @@ class FileAttachmentAnnotationElement extends AnnotationElement {
   }
 
   _download() {
-    this.downloadManager?.openOrDownloadData(this.container, this.content, this.filename);
+    //this.downloadManager?.openOrDownloadData(this.container, this.content, this.filename);
+    if(this.downloadManager) this.downloadManager.openOrDownloadData(this.container, this.content, this.filename);
   }
 
 }
@@ -11080,7 +11199,8 @@ const renderTextLayer = function renderTextLayerClosure() {
     this._textDivs = textDivs || [];
     this._textContentItemsStr = textContentItemsStr || [];
     this._enhanceTextSelection = !!enhanceTextSelection;
-    this._fontInspectorEnabled = !!globalThis.FontInspector?.enabled;
+    //this._fontInspectorEnabled = !!globalThis.FontInspector?.enabled;
+    this._fontInspectorEnabled = globalThis.FontInspector ? !!globalThis.FontInspector.enabled : false;
     this._reader = null;
     this._layoutTextLastFontSize = null;
     this._layoutTextLastFontFamily = null;
@@ -12235,7 +12355,8 @@ exports.SVGGraphics = SVGGraphics;
     endText() {
       const current = this.current;
 
-      if (current.textRenderingMode & _util.TextRenderingMode.ADD_TO_PATH_FLAG && current.txtElement?.hasChildNodes()) {
+      //if (current.textRenderingMode & _util.TextRenderingMode.ADD_TO_PATH_FLAG && current.txtElement?.hasChildNodes()) {
+      if (current.textRenderingMode & _util.TextRenderingMode.ADD_TO_PATH_FLAG && current.txtElement && current.txtElement.hasChildNodes()) {
         current.element = current.txtElement;
         this.clip("nonzero");
         this.endPath();
@@ -12997,7 +13118,8 @@ class PDFNodeStream {
   }
 
   get _progressiveDataLength() {
-    return this._fullRequestReader?._loaded ?? 0;
+    //return this._fullRequestReader?._loaded ?? 0;
+    return this._fullRequestReader ? this._fullRequestReader._loaded || 0 : 0;
   }
 
   getFullReader() {
@@ -14251,7 +14373,8 @@ function createFetchOptions(headers, withCredentials, abortController) {
   return {
     method: "GET",
     headers,
-    signal: abortController?.signal,
+    //signal: abortController?.signal,
+    signal: abortController ? abortController.signal : undefined,
     mode: "cors",
     credentials: withCredentials ? "include" : "same-origin",
     redirect: "follow"
@@ -14284,7 +14407,8 @@ class PDFFetchStream {
   }
 
   get _progressiveDataLength() {
-    return this._fullRequestReader?._loaded ?? 0;
+    //return this._fullRequestReader?._loaded ?? 0;
+    return this._fullRequestReader ? this._fullRequestReader._loaded || 0 : 0;
   }
 
   getFullReader() {
@@ -14469,7 +14593,8 @@ class PDFFetchStreamRangeReader {
 
       this._reader = response.body.getReader();
     }).catch(reason => {
-      if (reason?.name === "AbortError") {
+      //if (reason?.name === "AbortError") {
+      if (reason && reason.name === "AbortError") {
         return;
       }
 
