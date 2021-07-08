@@ -2646,7 +2646,7 @@ class LoopbackPort {
 
         if (typeof desc.value === "function") {
           //if (value.hasOwnProperty?.(i)) {
-          if (value.hasOwnProperty && value.hasOwnProperty.(i)) {
+          if (value.hasOwnProperty && value.hasOwnProperty(i)) {
             throw new Error(`LoopbackPort.postMessage - cannot clone: ${value[i]}`);
           }
 
@@ -4006,7 +4006,7 @@ exports.FontLoader = FontLoader;
         const m = /Mozilla\/5.0.*?rv:(\d+).*? Gecko/.exec(navigator.userAgent);
 
         //if (m?.[1] >= 14) {
-        if (m && m.[1] >= 14) {
+        if (m && m[1] >= 14) {
           supported = true;
         }
       }
@@ -9190,7 +9190,7 @@ class WidgetAnnotationElement extends AnnotationElement {
   _setEventListeners(element, names, getter) {
     for (const [baseName, eventName] of names) {
       //if (eventName === "Action" || this.data.actions?.[eventName]) {
-      if (eventName === "Action" || this.data.actions && this.data.actions.[eventName]) {
+      if (eventName === "Action" || this.data.actions && this.data.actions[eventName]) {
         this._setEventListener(element, baseName, eventName, getter);
       }
     }
