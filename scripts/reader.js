@@ -95,8 +95,8 @@ function PDFReader(options, file) {
             }
             numImageConverts++;
             if(packet.type == "error") throwError(new Error(packet.result), options, packet.return);
-            if(!!options.success) options.success(packet.result);
             delete idx[packet.return];
+            if(!!options.success) options.success(packet.result);
         }
     };
 
@@ -169,7 +169,7 @@ function PDFReader(options, file) {
 
                 self.postMessage({
                     "type": "success",
-                    "result": URL.createObjectURL(await canvas.convertToBlob({ type: "image/jpeg" })),
+                    "result": await canvas.convertToBlob({ type: "image/jpeg" }),
                     "return": packet.return,
                 });
             }catch(e) {
@@ -216,7 +216,11 @@ function PDFReader(options, file) {
 
         getPageImage(options, page) {
             if(WORKER.length <= 0) throw new Error("Can't use");
-            const id = randomKey();
+            const id = (() => {
+                let temp = randomKey();
+                while(idx[temp]) temp = randomKey();
+                return temp;
+            })();
             idx[id] = options;
             
             if(typeof options === "undefined") {
