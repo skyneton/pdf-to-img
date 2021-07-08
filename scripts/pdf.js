@@ -10518,7 +10518,7 @@ class FileAttachmentAnnotationElement extends AnnotationElement {
      //   content
      // });
       if (this.linkService.eventBus) {
-        this.linkService.eventBus?.dispatch("fileattachmentannotation", {
+        this.linkService.eventBus.dispatch("fileattachmentannotation", {
           source: this,
           id: (0, _util.stringToPDFString)(filename),
           filename,
