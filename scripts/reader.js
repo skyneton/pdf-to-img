@@ -161,11 +161,15 @@ function PDFReader(options, file) {
 
         const getPageImage = async packet => {
             try {
+                let scale = packet.scale;
+                if(!scale) scale = 96.0 / 72.0;
+
                 const page = await self.doc.getPage(packet.data);
-                const viewport = page.getViewport({scale: 1});
+                const viewport = page.getViewport({scale});
+
                 const canvas = new OffscreenCanvas(viewport.width, viewport.height);
 
-                await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
+                await page.render({canvasContext: canvas.getContext("2d", { alpha: false }), viewport}).promise;
 
                 self.postMessage({
                     "type": "success",
@@ -181,6 +185,22 @@ function PDFReader(options, file) {
             }
         };
 
+        const drawPageCanvas = async (canvas, scale, i) => {
+            try {
+                if(!scale) scale = 96.0 / 72.0;
+
+                const page = await self.doc.getPage(i);
+                const viewport = page.getViewport({scale});
+
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                page.render({canvasContext: canvas.getContext("2d", { alpha: false }), viewport});
+            }catch(e) {
+                console.error(e);
+            }
+        }
+
         self.addEventListener("message", e => {
             const packet = e.data;
             switch(packet.type) {
@@ -195,6 +215,11 @@ function PDFReader(options, file) {
                         "return": packet.return,
                     });
                     else getPageImage(packet);
+                    break;
+                }
+                case "drawPageCanvas": {
+                    drawPageCanvas(packet.data, packet.scale, packet.page);
+                    break;
                 }
             }
         });
@@ -230,8 +255,28 @@ function PDFReader(options, file) {
             WORKER[targetWorkerUid].worker.postMessage({
                 "type": "getPageImage",
                 "data": page,
+                "scale": options.scale,
                 "return": id,
             });
+
+            targetWorkerUpdate();
+        }
+
+        drawPageCanvas(canvas, page, scale = null) {
+            if(options == null || canvas == null || page == null) throw new Error("Please input parameters");
+            if(canvas instanceof HTMLCanvasElement) {
+                if(canvas.transferControlToOffscreen) canvas = canvas.transferControlToOffscreen();
+                else return throwError(new Error("Not support transferControlToOffscreen"), options);
+            }else if(!(canvas instanceof OffscreenCanvas)) return throwError(new Error("Canvas should offScreenCanvas or canvas"), options);
+
+            if(WORKER.length <= 0) return throwError(new Error("Can't use"), options);
+
+            WORKER[targetWorkerUid].worker.postMessage({
+                "type": "drawPageCanvas",
+                "data": canvas,
+                "page": page,
+                "scale": scale,
+            }, [canvas]);
 
             targetWorkerUpdate();
         }
@@ -250,6 +295,10 @@ function PDFReader(options, file) {
 
         get pdfLoadedTime() {
             return pdfLoadedTime;
+        }
+
+        get isActive() {
+            return WORKER.length > 0;
         }
 
         close() {
