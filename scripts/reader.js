@@ -1,7 +1,7 @@
 const PDF_READER_MAIN_URL = URL.createObjectURL(new Blob([`(${pdfjsLibWorker.toString()})()`]))
     , PDF_WORKER_MAIN_URL = URL.createObjectURL(new Blob([`(${pdfWorkerJs.toString()})()`]));
 
-function PDFReader(options, file) {
+function PDFReader(options) {
     "use strict";
     const WORKER = [];
     let WORKER_URL, numPages = 0;
@@ -14,7 +14,7 @@ function PDFReader(options, file) {
     const throwError = (err, options, id, isThrow = true) => {
         if(id != undefined && id != null) delete idx[id];
 
-        if(!!options.error) options.error(err);
+        if(options.error) options.error.call(this, err);
         else if(isThrow) throw err;
         else console.error(err.message);
     };
@@ -42,7 +42,7 @@ function PDFReader(options, file) {
 
                 tempWorker.postMessage({
                     type: "init",
-                    data: file,
+                    data: options.file,
                     url: [PDF_READER_MAIN_URL, PDF_WORKER_MAIN_URL],
                     return: id,
                 });
@@ -63,7 +63,7 @@ function PDFReader(options, file) {
 
     var getThreadMessage = id => e => {
         const packet = e.data, options = idx[packet.return];
-        if(!!options) {
+        if(options) {
             if(packet.isPageNum) {
                 if(packet.type == "error") {
                     console.error(packet.result);
@@ -88,15 +88,15 @@ function PDFReader(options, file) {
 
                 if(isAllInitalized) {
                     pdfLoadedTime = Date.now();
-                    if(!!options.success) options.success(packet.result);
+                    if(options.success) options.success.call(this, packet.result);
                     delete idx[packet.return];
                 }
                 return;
             }
             numImageConverts++;
-            if(packet.type == "error") throwError(new Error(packet.result), options, packet.return);
+            if(packet.type == "error") return throwError(new Error(packet.result), options, packet.return);
             delete idx[packet.return];
-            if(!!options.success) options.success(packet.result);
+            if(options.success) options.success.call(this, packet.result);
         }
     };
 
@@ -123,6 +123,28 @@ function PDFReader(options, file) {
 
             return array;
         };
+
+        const viewportResizingScale = (width = 1, height = 1, maxHeight, maxWidth, maxPixels) => {
+            let scale = 1;
+            if(width == 0 || height == 0) return 1;
+
+            if(maxHeight || maxWidth) {
+                let scaleX = 1;
+                if(maxWidth < width) scaleX = maxWidth / width;
+                let scaleY = 1;
+                if(maxHeight < height) scaleY = maxHeight / height;
+                scale = Math.min(scaleX, scaleY);
+            }
+
+            if(maxPixels) {
+                const pixels = (width * scale) * (height * scale);
+                if(pixels > maxPixels) {
+                    scale *= maxPixels / pixels;
+                }
+            }
+
+            return scale;
+        }
 
         const initalizer = async packet => {
             for(let i = 0; i < packet.url.length; i++) {
@@ -161,21 +183,29 @@ function PDFReader(options, file) {
 
         const getPageImage = async packet => {
             try {
-                let scale = packet.scale;
-                if(!scale) scale = 96.0 / 72.0;
+                if(!packet.scale) packet.scale = 96.0 / 72.0;
 
                 const page = await self.doc.getPage(packet.data);
-                const viewport = page.getViewport({scale});
+                let viewport = page.getViewport({"scale": packet.scale});
+                
+                const scale = viewportResizingScale(viewport.width, viewport.height, packet.maxHeight, packet.maxWidth, packet.maxPixels);
+                if(scale != 1) viewport = page.getViewport({"scale": packet.scale * scale});
 
                 const canvas = new OffscreenCanvas(viewport.width, viewport.height);
 
                 await page.render({canvasContext: canvas.getContext("2d", { alpha: false }), viewport}).promise;
 
-                self.postMessage({
+                const result = {
                     "type": "success",
                     "result": await canvas.convertToBlob({ type: "image/jpeg" }),
                     "return": packet.return,
-                });
+                };
+
+                if(packet.toURL) {
+                    result.result = URL.createObjectURL(result.result);
+                }
+
+                self.postMessage(result);
             }catch(e) {
                 self.postMessage({
                     "type": "error",
@@ -185,19 +215,77 @@ function PDFReader(options, file) {
             }
         };
 
-        const drawPageCanvas = async (canvas, scale, i) => {
+        const getImageBitMap = async packet => {
             try {
-                if(!scale) scale = 96.0 / 72.0;
+                if(!packet.scale) packet.scale = 96.0 / 72.0;
 
-                const page = await self.doc.getPage(i);
-                const viewport = page.getViewport({scale});
+                const page = await self.doc.getPage(packet.data);
+                let viewport = page.getViewport({"scale": packet.scale});
 
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
+                const scale = viewportResizingScale(viewport.width, viewport.height, packet.maxHeight, packet.maxWidth, packet.maxPixels);
+                if(scale != 1) viewport = page.getViewport({"scale": packet.scale * scale});
 
-                page.render({canvasContext: canvas.getContext("2d", { alpha: false }), viewport});
+                const canvas = new OffscreenCanvas(viewport.width, viewport.height);
+                const ctx = canvas.getContext("2d", { alpha: false });
+                await page.render({canvasContext: ctx, viewport}).promise;
+
+                let bitmap;
+                try {
+                    bitmap = canvas.transferToImageBitmap();
+                }catch {
+                    bitmap = createImageBitmap(ctx.createImageData(canvas.width, canvas.height));
+                }
+
+                self.postMessage({
+                    "type": "success",
+                    "result": {
+                        bitmap,
+                        transform: {
+                            x: viewport.width,
+                            y: viewport.height,
+                        },
+                    },
+                    "return": packet.return,
+                }, [bitmap]);
             }catch(e) {
-                console.error(e);
+                self.postMessage({
+                    "type": "error",
+                    "result": e.message,
+                    "return": packet.return,
+                });
+            }
+        };
+
+        const drawPageCanvas = async packet => {
+            try {
+                if(!packet.scale) packet.scale = 96.0 / 72.0;
+
+                const page = await self.doc.getPage(packet.page);
+                let viewport = page.getViewport({"scale": packet.scale});
+
+                const scale = viewportResizingScale(viewport.width, viewport.height, packet.maxHeight, packet.maxWidth, packet.maxPixels);
+                if(scale != 1) viewport = page.getViewport({"scale": packet.scale * scale});
+
+                packet.data.width = viewport.width;
+                packet.data.height = viewport.height;
+
+                const ctx = packet.data.getContext("2d", { alpha: false });
+                await page.render({canvasContext: ctx, viewport}).promise;
+
+                self.postMessage({
+                    "type": "success",
+                    "result": {
+                        x: viewport.width,
+                        y: viewport.height,
+                    },
+                    "return": packet.return,
+                });
+            }catch(e) {
+                self.postMessage({
+                    "type": "error",
+                    "result": e.message,
+                    "return": packet.return,
+                });
             }
         }
 
@@ -217,8 +305,17 @@ function PDFReader(options, file) {
                     else getPageImage(packet);
                     break;
                 }
+                case "getImageBitMap": {
+                    if(!self.doc) self.postMessage({
+                        "type": "error",
+                        "result": "PDF Document can't load",
+                        "return": packet.return,
+                    });
+                    else getImageBitMap(packet);
+                    break;
+                }
                 case "drawPageCanvas": {
-                    drawPageCanvas(packet.data, packet.scale, packet.page);
+                    drawPageCanvas(packet);
                     break;
                 }
             }
@@ -228,19 +325,24 @@ function PDFReader(options, file) {
 
     var Reader =  new class {
         constructor() {
-            if(!(file instanceof File || file instanceof Blob || file instanceof Uint8Array || typeof file === "string")) {
-                throw new Error("file type must File or Blob or Uint8Array or string");
-            }
-
             if(typeof options === "undefined") {
                 throw new Error("Please input options data");
+            }
+
+            if(!options.file) return throwError(new Error("Please input file"), options);
+            const file = options.file;
+
+            if(!(file instanceof File || file instanceof Blob || file instanceof Uint8Array || typeof file === "string")) {
+                throw new Error("file type must File or Blob or Uint8Array or string");
             }
 
             workerInit();
         }
 
-        getPageImage(options, page) {
+        getPageImage(options) {
             if(WORKER.length <= 0) throw new Error("Can't use");
+            if(!options.page) return throwError(new Error("Please input page"), options);
+
             const id = (() => {
                 let temp = randomKey();
                 while(idx[temp]) temp = randomKey();
@@ -254,29 +356,77 @@ function PDFReader(options, file) {
 
             WORKER[targetWorkerUid].worker.postMessage({
                 "type": "getPageImage",
-                "data": page,
+                "data": options.page,
                 "scale": options.scale,
+                "toURL": options.toURL,
+                "maxWidth": options.maxWidth,
+                "maxHeight": options.maxHeight,
+                "maxPixels": options.pixels,
                 "return": id,
             });
 
             targetWorkerUpdate();
         }
 
-        drawPageCanvas(canvas, page, scale = null) {
-            if(options == null || canvas == null || page == null) throw new Error("Please input parameters");
-            if(canvas instanceof HTMLCanvasElement) {
-                if(canvas.transferControlToOffscreen) canvas = canvas.transferControlToOffscreen();
+        getImageBitMap(options) {
+            if(typeof options === "undefined") {
+                throw new Error("Please input options data");
+            }
+
+            if(WORKER.length <= 0) return throwError(new Error("Can't use"), options);
+            if(!options.page) return throwError(new Error("Please input page"), options);
+
+            const id = (() => {
+                let temp = randomKey();
+                while(idx[temp]) temp = randomKey();
+                return temp;
+            })();
+            idx[id] = options;
+
+            WORKER[targetWorkerUid].worker.postMessage({
+                "type": "getImageBitMap",
+                "data": options.page,
+                "scale": options.scale,
+                "maxWidth": options.maxWidth,
+                "maxHeight": options.maxHeight,
+                "maxPixels": options.pixels,
+                "return": id,
+            });
+
+            targetWorkerUpdate();
+        }
+
+        drawPageCanvas(options) {
+            if(typeof options === "undefined") {
+                throw new Error("Please input options data");
+            }
+
+            if(!options.page) return throwError(new Error("Please input page"), options);
+            if(!options.canvas) return throwError(new Error("Please input canvas"), options);
+            if(options.canvas instanceof HTMLCanvasElement) {
+                if(options.canvas.transferControlToOffscreen) options.canvas = options.canvas.transferControlToOffscreen();
                 else return throwError(new Error("Not support transferControlToOffscreen"), options);
-            }else if(!(canvas instanceof OffscreenCanvas)) return throwError(new Error("Canvas should offScreenCanvas or canvas"), options);
+            }else if(!(options.canvas instanceof OffscreenCanvas)) return throwError(new Error("Canvas should offScreenCanvas or canvas"), options);
+
+            const id = (() => {
+                let temp = randomKey();
+                while(idx[temp]) temp = randomKey();
+                return temp;
+            })();
+            idx[id] = options;
 
             if(WORKER.length <= 0) return throwError(new Error("Can't use"), options);
 
             WORKER[targetWorkerUid].worker.postMessage({
                 "type": "drawPageCanvas",
-                "data": canvas,
-                "page": page,
-                "scale": scale,
-            }, [canvas]);
+                "data": options.canvas,
+                "page": options.page,
+                "scale": options.scale,
+                "maxWidth": options.maxWidth,
+                "maxHeight": options.maxHeight,
+                "maxPixels": options.pixels,
+                "return": id,
+            }, [options.canvas]);
 
             targetWorkerUpdate();
         }
