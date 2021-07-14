@@ -11,9 +11,11 @@ const getPageImage = (reader, page) => {
             console.error(e);
             if(reader.numImageConverts >= reader.numPages) reader.close();
         },
-        scale: 96.0 / 72.0 * 0.8,
+        /*scale: 96.0 / 72.0 * 0.8,
         maxWidth: 800,
-        maxHeight: 800,
+        maxHeight: 800,*/
+        maxWidth: 680,
+        scale: 96.0 / 72.0 * 0.6,
         toURL: true,
         page,
     });
