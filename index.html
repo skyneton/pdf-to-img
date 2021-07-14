@@ -10,14 +10,31 @@
     <script src="scripts/reader.min.js" defer></script>
     <script src="scripts/main.js" defer></script>
     <style>
-        img {
+        canvas, img {
             display: block;
-            box-shadow: 1px 1px 3px black;
-            margin: 12px auto;
+            width: 100%;
+            object-fit: contain;
+        }
+        input[type="file"] {
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+        input[type="file"][hide] {
+            display: none;
+        }
+        * {
+            -ms-user-select: none; 
+            -moz-user-select: -moz-none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            
+            -webkit-user-drag: none;
         }
     </style>
 </head>
 <body>
-    <input type="file" id="inputFile"/>
+    <input type="file" id="inputFile" accept="application/pdf" multiple/>
 </body>
 </html>
