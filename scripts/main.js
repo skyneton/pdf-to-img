@@ -4,7 +4,7 @@ function removeSrcURL() {
 const getPageImage = (reader, page) => {
     const canvas = document.createElement("img");
     document.body.appendChild(canvas);
-//     canvas.onload = removeSrcURL;
+    canvas.onload = removeSrcURL;
 
     reader.getPageImage({
         success(url) {
