@@ -46,6 +46,14 @@ const getDocument = file => {
     });
 }
 
+const getImage = file => {
+    const image = document.createElement("img");
+    document.body.appendChild(image);
+    canvas.onload = removeSrcURL;
+    image.src = URL.createObjectURL(file);
+    
+}
+
 document.getElementById("inputFile").onchange = async event => {
     const files = (() => {
         const collator = new Intl.Collator("en", {numeric: true, sensitivity: "base"});
@@ -53,6 +61,10 @@ document.getElementById("inputFile").onchange = async event => {
     })();
 
     for(let i = 0; i < files.length; i++) {
+        if(files[i].type != "application/pdf") {
+            getImage(files[i]);
+            continue;
+        }
         const reader = await getDocument(files[i]);
         showPDFImages(reader, reader.numPages);
     }
