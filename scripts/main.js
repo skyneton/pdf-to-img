@@ -1,6 +1,10 @@
+const removeSrcURL = () => {
+    console.log(this);
+}
 const getPageImage = (reader, page) => {
     const canvas = document.createElement("img");
     document.body.appendChild(canvas);
+    canvas.onload = removeSrcURL;
 
     reader.getPageImage({
         success(url) {
