@@ -1,4 +1,4 @@
-const removeSrcURL = () => {
+function removeSrcURL() {
     console.log(this);
 }
 const getPageImage = (reader, page) => {
