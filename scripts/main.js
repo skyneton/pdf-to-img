@@ -1,5 +1,5 @@
 function removeSrcURL() {
-    console.log(this);
+    URL.revokeObjectURL(this.src);
 }
 const getPageImage = (reader, page) => {
     const canvas = document.createElement("img");
