@@ -49,7 +49,7 @@ const getDocument = file => {
 const getImage = file => {
     const image = document.createElement("img");
     document.body.appendChild(image);
-    canvas.onload = removeSrcURL;
+    image.onload = removeSrcURL;
     image.src = URL.createObjectURL(file);
     
 }
